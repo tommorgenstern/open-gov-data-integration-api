@@ -1,0 +1,1077 @@
+{
+  "openapi": "3.0.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "operationId": "HealthController_health",
+        "summary": "Health-Check",
+        "description": "Prüft, ob die API läuft und die Datenbank erreichbar ist.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "System"
+        ]
+      }
+    },
+    "/regions": {
+      "get": {
+        "operationId": "RegionsController_list",
+        "summary": "Regionen auflisten",
+        "description": "Listet Regionen (Land, Bundesland, Kreis, Gemeinde) mit Filter und Paginierung.",
+        "parameters": [
+          {
+            "name": "level",
+            "required": false,
+            "in": "query",
+            "description": "Filter auf die Regionsebene.",
+            "schema": {
+              "enum": [
+                "country",
+                "state",
+                "district",
+                "municipality"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "AGS der übergeordneten Region (z. B. 14 für Kreise in Sachsen).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "description": "Freitextsuche im Regionsnamen.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max. Anzahl Ergebnisse (Standard 100).",
+            "schema": {
+              "default": 100,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset für Paginierung.",
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionListResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Regionen"
+        ]
+      }
+    },
+    "/regions/{ags}": {
+      "get": {
+        "operationId": "RegionsController_getOne",
+        "summary": "Einzelne Region",
+        "description": "Liefert eine Region inkl. Einwohnerzahl und data_coverage (frühestes/spätestes Unfalljahr). AGS „00“ steht für Deutschland gesamt (frühestes Jahr insgesamt).",
+        "parameters": [
+          {
+            "name": "ags",
+            "required": true,
+            "in": "path",
+            "description": "Amtlicher Gemeindeschlüssel, z. B. 14 (Sachsen), 05 (NRW), 00 (Deutschland).",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegionDetailResponseDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Keine Region mit diesem AGS gefunden."
+          }
+        },
+        "tags": [
+          "Regionen"
+        ]
+      }
+    },
+    "/accidents": {
+      "get": {
+        "operationId": "AccidentsController_list",
+        "summary": "Einzelne Unfälle (gefiltert)",
+        "description": "Liefert einzelne Unfallereignisse mit Filtern (Region, Jahr, Monat, Wochentag, Stunde, Kategorie, Beteiligtenart) und Paginierung.",
+        "parameters": [
+          {
+            "name": "region",
+            "required": false,
+            "in": "query",
+            "description": "AGS-Präfix der Region (2/5/8-stellig: Land, Kreis, Gemeinde).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Unfalljahr.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "month",
+            "required": false,
+            "in": "query",
+            "description": "Monat (1–12).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "weekday",
+            "required": false,
+            "in": "query",
+            "description": "Wochentag (1 = Sonntag … 7 = Samstag, wie im Unfallatlas).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "hour",
+            "required": false,
+            "in": "query",
+            "description": "Stunde (0–23).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Unfallkategorie: 1 = Getötete, 2 = Schwerverletzte, 3 = Leichtverletzte.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "participant",
+            "required": false,
+            "in": "query",
+            "description": "Filter auf Beteiligtenart.",
+            "schema": {
+              "enum": [
+                "foot",
+                "bike",
+                "car",
+                "motorbike",
+                "truck",
+                "other"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Max. Anzahl Ergebnisse (Standard 50).",
+            "schema": {
+              "default": 50,
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset für Paginierung.",
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccidentsResponseDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Unfälle"
+        ]
+      }
+    },
+    "/accident-statistics": {
+      "get": {
+        "operationId": "StatisticsController_getStatistics",
+        "summary": "Aggregierte Unfallzahlen je Region",
+        "description": "Liefert Unfallzahlen je Region auf der gewählten Ebene. Über Parameter lassen sich Ranglisten (sort, limit), Filter (year, category, participant) und Regionen ohne Unfälle (maxCount=0) abbilden. Die Antwort enthält die Herkunfts- und Lizenzangaben der Quellen.",
+        "parameters": [
+          {
+            "name": "groupBy",
+            "required": false,
+            "in": "query",
+            "description": "Gruppierungsdimension der Aggregation.",
+            "schema": {
+              "default": "region",
+              "enum": [
+                "region"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "level",
+            "required": true,
+            "in": "query",
+            "description": "Regionsebene: Bundesland (state), Landkreis (district) oder Gemeinde (municipality).",
+            "schema": {
+              "enum": [
+                "state",
+                "district",
+                "municipality"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "parent",
+            "required": false,
+            "in": "query",
+            "description": "AGS-Präfix der übergeordneten Region (z. B. 14 = nur Regionen in Sachsen).",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "year",
+            "required": false,
+            "in": "query",
+            "description": "Unfalljahr, z. B. 2023.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "category",
+            "required": false,
+            "in": "query",
+            "description": "Unfallkategorie: 1 = Getötete, 2 = Schwerverletzte, 3 = Leichtverletzte.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "participant",
+            "required": false,
+            "in": "query",
+            "description": "Filter auf Beteiligtenart.",
+            "schema": {
+              "enum": [
+                "foot",
+                "bike",
+                "car",
+                "motorbike",
+                "truck",
+                "other"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "per",
+            "required": false,
+            "in": "query",
+            "description": "Bezugsgröße für eine Rate je 100.000: population (Einwohner) oder pkw (zugelassene PKW; nur auf Kreisebene mit Jahr).",
+            "schema": {
+              "enum": [
+                "population",
+                "pkw"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sort",
+            "required": false,
+            "in": "query",
+            "description": "Sortierung der Ergebnisse (z. B. -count für Ranglisten, -rate für höchste Rate).",
+            "schema": {
+              "default": "-count",
+              "enum": [
+                "count",
+                "-count",
+                "ags",
+                "-ags",
+                "rate",
+                "-rate"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "description": "Maximale Anzahl Ergebniszeilen (z. B. 5 für Top-Ranglisten).",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "description": "Offset für Paginierung (Standard 0).",
+            "schema": {
+              "default": 0,
+              "type": "number"
+            }
+          },
+          {
+            "name": "minCount",
+            "required": false,
+            "in": "query",
+            "description": "Nur Regionen mit mindestens dieser Unfallzahl.",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "maxCount",
+            "required": false,
+            "in": "query",
+            "description": "Nur Regionen mit höchstens dieser Unfallzahl (maxCount=0 ⇒ Regionen ohne Unfälle).",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatisticsResponseDto"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ungültige Parameter."
+          },
+          "422": {
+            "description": "Unzulässige Kombination (z. B. per=pkw außerhalb der Kreisebene)."
+          }
+        },
+        "tags": [
+          "Statistik"
+        ]
+      }
+    },
+    "/sources": {
+      "get": {
+        "operationId": "MetadataController_listSources",
+        "summary": "Datenquellen",
+        "description": "Alle integrierten Datenquellen mit Lizenz, URL und Abrufdatum. Mit `Accept: text/turtle` wird der Katalog als Linked Data (DCAT + Dublin Core, RDF/Turtle) ausgegeben.",
+        "parameters": [
+          {
+            "name": "accept",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceDto"
+                  }
+                }
+              },
+              "text/turtle": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SourceDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Metadaten & Herkunft"
+        ]
+      }
+    },
+    "/sources/{id}": {
+      "get": {
+        "operationId": "MetadataController_getSource",
+        "summary": "Einzelne Datenquelle",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SourceDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Keine Datenquelle mit dieser ID."
+          }
+        },
+        "tags": [
+          "Metadaten & Herkunft"
+        ]
+      }
+    },
+    "/import-runs": {
+      "get": {
+        "operationId": "MetadataController_listImportRuns",
+        "summary": "Importläufe",
+        "description": "Provenienz der ETL-Läufe: je Datensatz Zeilenzahlen (gelesen/geladen/abgelehnt), Zeitstempel und Hinweise. Belegt die Reproduzierbarkeit und das Update-Verhalten.",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ImportRunDto"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "Metadaten & Herkunft"
+        ]
+      }
+    },
+    "/import-runs/{id}": {
+      "get": {
+        "operationId": "MetadataController_getImportRun",
+        "summary": "Einzelner Importlauf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ImportRunDto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Kein Importlauf mit dieser ID."
+          }
+        },
+        "tags": [
+          "Metadaten & Herkunft"
+        ]
+      }
+    }
+  },
+  "info": {
+    "title": "Unfalldaten-API",
+    "description": "Web-Service-API für integrierte deutsche Unfalldaten (Unfallatlas, Gemeindeverzeichnis, KBA FZ1).\n\n## Regionsschlüssel (AGS)\nRegionen werden über den **Amtlichen Gemeindeschlüssel (AGS)** als Zeichenkette adressiert:\n- `level=state` → 2-stellig (Bundesland, z. B. `14` = Sachsen, `05` = NRW)\n- `level=district` → 5-stellig (Landkreis/kreisfreie Stadt, z. B. `14612` = Dresden)\n- `level=municipality` → 8-stellig (Gemeinde)\nAufbau: `Land(2) + Regierungsbezirk(1) + Kreis(2) + Gemeinde(3)`. Aggregationen nutzen den\nAGS-Präfix; `00` ist die synthetische Wurzel „Deutschland“ (Gesamtabdeckung).\n\n## Herkunft & Lizenz (Provenienz)\nJede Datenantwort ist in eine Hülle `{ data, meta }` verpackt. `meta.provenance.sources` ist\nein Array — je beitragender Quelle Name, URL, Lizenz (Name + Link) und Abrufdatum.\n\n## Fehlercodes\n`400` ungültige Parameter · `404` unbekannte Ressource · `422` unzulässige Kombination\n(z. B. `per=pkw` außerhalb der Kreisebene) · `503` Datenbank nicht erreichbar.\n\n## Linked Data\n`GET /sources` liefert mit `Accept: text/turtle` den Quellenkatalog als RDF (DCAT + Dublin Core).",
+    "version": "1.0",
+    "contact": {}
+  },
+  "tags": [],
+  "servers": [],
+  "components": {
+    "schemas": {
+      "RegionSummaryDto": {
+        "type": "object",
+        "properties": {
+          "ags": {
+            "type": "string",
+            "example": "14612"
+          },
+          "name": {
+            "type": "string",
+            "example": "Dresden, Stadt"
+          },
+          "level": {
+            "type": "string",
+            "example": "district",
+            "enum": [
+              "country",
+              "state",
+              "district",
+              "municipality"
+            ]
+          },
+          "population": {
+            "type": "object",
+            "example": 563311,
+            "nullable": true
+          },
+          "parent_ags": {
+            "type": "object",
+            "example": "14",
+            "nullable": true,
+            "description": "AGS der übergeordneten Region."
+          }
+        },
+        "required": [
+          "ags",
+          "name",
+          "level",
+          "population",
+          "parent_ags"
+        ]
+      },
+      "ProvenanceSourceDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "example": "Unfallatlas (Unfallorte mit Personenschaden)"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://www.opengeodata.nrw.de/produkte/transport_verkehr/unfallatlas/"
+          },
+          "license": {
+            "type": "object",
+            "example": "Datenlizenz Deutschland – Namensnennung 2.0",
+            "nullable": true
+          },
+          "license_url": {
+            "type": "object",
+            "example": "https://www.govdata.de/dl-de/by-2-0",
+            "nullable": true
+          },
+          "retrieved_at": {
+            "type": "object",
+            "example": "2026-06-10T13:30:00.000Z",
+            "nullable": true
+          }
+        },
+        "required": [
+          "name",
+          "url",
+          "license",
+          "license_url",
+          "retrieved_at"
+        ]
+      },
+      "ProvenanceDto": {
+        "type": "object",
+        "properties": {
+          "sources": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProvenanceSourceDto"
+            }
+          }
+        },
+        "required": [
+          "sources"
+        ]
+      },
+      "MetaDto": {
+        "type": "object",
+        "properties": {
+          "provenance": {
+            "$ref": "#/components/schemas/ProvenanceDto"
+          }
+        },
+        "required": [
+          "provenance"
+        ]
+      },
+      "RegionListResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionSummaryDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "DataCoverageDto": {
+        "type": "object",
+        "properties": {
+          "earliest_year": {
+            "type": "object",
+            "example": 2016,
+            "nullable": true
+          },
+          "latest_year": {
+            "type": "object",
+            "example": 2024,
+            "nullable": true
+          }
+        },
+        "required": [
+          "earliest_year",
+          "latest_year"
+        ]
+      },
+      "RegionDetailDto": {
+        "type": "object",
+        "properties": {
+          "ags": {
+            "type": "string",
+            "example": "14612"
+          },
+          "name": {
+            "type": "string",
+            "example": "Dresden, Stadt"
+          },
+          "level": {
+            "type": "string",
+            "example": "district",
+            "enum": [
+              "country",
+              "state",
+              "district",
+              "municipality"
+            ]
+          },
+          "population": {
+            "type": "object",
+            "example": 563311,
+            "nullable": true
+          },
+          "parent_ags": {
+            "type": "object",
+            "example": "14",
+            "nullable": true,
+            "description": "AGS der übergeordneten Region."
+          },
+          "data_coverage": {
+            "$ref": "#/components/schemas/DataCoverageDto"
+          }
+        },
+        "required": [
+          "ags",
+          "name",
+          "level",
+          "population",
+          "parent_ags",
+          "data_coverage"
+        ]
+      },
+      "RegionDetailResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/RegionDetailDto"
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "AccidentDto": {
+        "type": "object",
+        "properties": {
+          "accident_id": {
+            "type": "number",
+            "example": 123456
+          },
+          "year": {
+            "type": "number",
+            "example": 2023
+          },
+          "month": {
+            "type": "object",
+            "example": 7,
+            "nullable": true
+          },
+          "hour": {
+            "type": "object",
+            "example": 17,
+            "nullable": true
+          },
+          "weekday": {
+            "type": "object",
+            "example": 6,
+            "nullable": true,
+            "description": "Wochentag (1=So … 7=Sa)."
+          },
+          "category": {
+            "type": "object",
+            "example": 3,
+            "nullable": true,
+            "description": "1=Getötete, 2=Schwerverletzte, 3=Leichtverletzte."
+          },
+          "type": {
+            "type": "object",
+            "example": 2,
+            "nullable": true,
+            "description": "Unfallart (UART)."
+          },
+          "light": {
+            "type": "object",
+            "example": 0,
+            "nullable": true,
+            "description": "Lichtverhältnisse (ULICHTVERH)."
+          },
+          "is_bike": {
+            "type": "object",
+            "example": false,
+            "nullable": true
+          },
+          "is_car": {
+            "type": "object",
+            "example": true,
+            "nullable": true
+          },
+          "is_foot": {
+            "type": "object",
+            "example": false,
+            "nullable": true
+          },
+          "is_motorbike": {
+            "type": "object",
+            "example": false,
+            "nullable": true
+          },
+          "is_truck": {
+            "type": "object",
+            "example": false,
+            "nullable": true
+          },
+          "is_other": {
+            "type": "object",
+            "example": false,
+            "nullable": true
+          },
+          "lon": {
+            "type": "object",
+            "example": 13.7373,
+            "nullable": true
+          },
+          "lat": {
+            "type": "object",
+            "example": 51.0504,
+            "nullable": true
+          },
+          "region_ags": {
+            "type": "string",
+            "example": "14612000"
+          },
+          "region_name": {
+            "type": "string",
+            "example": "Dresden, Stadt"
+          }
+        },
+        "required": [
+          "accident_id",
+          "year",
+          "month",
+          "hour",
+          "weekday",
+          "category",
+          "type",
+          "light",
+          "is_bike",
+          "is_car",
+          "is_foot",
+          "is_motorbike",
+          "is_truck",
+          "is_other",
+          "lon",
+          "lat",
+          "region_ags",
+          "region_name"
+        ]
+      },
+      "AccidentsResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccidentDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "RegionStatDto": {
+        "type": "object",
+        "properties": {
+          "ags": {
+            "type": "string",
+            "example": "14",
+            "description": "AGS der Region."
+          },
+          "name": {
+            "type": "string",
+            "example": "Sachsen"
+          },
+          "count": {
+            "type": "number",
+            "example": 12513,
+            "description": "Anzahl Unfälle."
+          },
+          "denominator": {
+            "type": "object",
+            "example": 102139,
+            "nullable": true,
+            "description": "Bezugsgröße der Rate (nur bei per)."
+          },
+          "rate": {
+            "type": "object",
+            "example": 1159.2,
+            "nullable": true,
+            "description": "Rate je 100.000 (nur bei per)."
+          }
+        },
+        "required": [
+          "ags",
+          "name",
+          "count"
+        ]
+      },
+      "StatisticsResponseDto": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RegionStatDto"
+            }
+          },
+          "meta": {
+            "$ref": "#/components/schemas/MetaDto"
+          }
+        },
+        "required": [
+          "data",
+          "meta"
+        ]
+      },
+      "SourceDto": {
+        "type": "object",
+        "properties": {
+          "source_id": {
+            "type": "number",
+            "example": 1
+          },
+          "name": {
+            "type": "string",
+            "example": "Unfallatlas (Unfallorte mit Personenschaden)"
+          },
+          "url": {
+            "type": "string",
+            "example": "https://www.opengeodata.nrw.de/produkte/transport_verkehr/unfallatlas/"
+          },
+          "license": {
+            "type": "object",
+            "example": "Datenlizenz Deutschland – Namensnennung 2.0",
+            "nullable": true
+          },
+          "license_url": {
+            "type": "object",
+            "example": "https://www.govdata.de/dl-de/by-2-0",
+            "nullable": true
+          },
+          "format": {
+            "type": "object",
+            "example": "CSV",
+            "nullable": true
+          },
+          "retrieved_at": {
+            "type": "object",
+            "example": "2026-06-10T13:30:00.000Z",
+            "nullable": true
+          }
+        },
+        "required": [
+          "source_id",
+          "name",
+          "url",
+          "license",
+          "license_url",
+          "format",
+          "retrieved_at"
+        ]
+      },
+      "ImportRunDto": {
+        "type": "object",
+        "properties": {
+          "import_run_id": {
+            "type": "number",
+            "example": 5
+          },
+          "source_id": {
+            "type": "number",
+            "example": 1
+          },
+          "source_name": {
+            "type": "string",
+            "example": "Unfallatlas (Unfallorte mit Personenschaden)"
+          },
+          "source_url": {
+            "type": "string",
+            "example": "https://www.opengeodata.nrw.de/produkte/transport_verkehr/unfallatlas/"
+          },
+          "license": {
+            "type": "object",
+            "example": "Datenlizenz Deutschland – Namensnennung 2.0",
+            "nullable": true
+          },
+          "license_url": {
+            "type": "object",
+            "example": "https://www.govdata.de/dl-de/by-2-0",
+            "nullable": true
+          },
+          "dataset_key": {
+            "type": "string",
+            "example": "unfallatlas:2023"
+          },
+          "started_at": {
+            "type": "string",
+            "example": "2026-06-25T20:50:00.000Z"
+          },
+          "finished_at": {
+            "type": "object",
+            "example": "2026-06-25T20:50:12.000Z",
+            "nullable": true
+          },
+          "rows_in": {
+            "type": "object",
+            "example": 269048,
+            "nullable": true
+          },
+          "rows_loaded": {
+            "type": "object",
+            "example": 269048,
+            "nullable": true
+          },
+          "rows_rejected": {
+            "type": "object",
+            "example": 0,
+            "nullable": true
+          },
+          "notes": {
+            "type": "object",
+            "example": "Unfallatlas 2023; orphan AGS (unresolved region): 0",
+            "nullable": true
+          }
+        },
+        "required": [
+          "import_run_id",
+          "source_id",
+          "source_name",
+          "source_url",
+          "license",
+          "license_url",
+          "dataset_key",
+          "started_at",
+          "finished_at",
+          "rows_in",
+          "rows_loaded",
+          "rows_rejected",
+          "notes"
+        ]
+      }
+    }
+  }
+}

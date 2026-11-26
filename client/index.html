@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Unfalldaten-API — Demo-Client</title>
+  <style>
+    :root { --bg:#0f172a; --card:#1e293b; --accent:#38bdf8; --text:#e2e8f0; --muted:#94a3b8; --ok:#4ade80; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, sans-serif; background:var(--bg); color:var(--text); line-height:1.5; }
+    header { padding:1.5rem 2rem; border-bottom:1px solid #334155; }
+    header h1 { margin:0 0 .25rem; font-size:1.4rem; }
+    header p { margin:0; color:var(--muted); font-size:.9rem; }
+    header a { color:var(--accent); }
+    main { max-width:1000px; margin:0 auto; padding:1.5rem 2rem; display:grid; gap:1rem; }
+    .card { background:var(--card); border:1px solid #334155; border-radius:10px; padding:1rem 1.25rem; }
+    .card h2 { margin:0 0 .25rem; font-size:1rem; }
+    .card .desc { color:var(--muted); font-size:.85rem; margin:0 0 .75rem; }
+    button { background:var(--accent); color:#08263a; border:none; border-radius:6px; padding:.5rem .9rem;
+             font-weight:600; cursor:pointer; font-size:.9rem; }
+    button:hover { filter:brightness(1.1); }
+    button:disabled { opacity:.5; cursor:wait; }
+    .answer { margin-top:.75rem; font-size:1.05rem; }
+    .answer .big { color:var(--ok); font-weight:700; }
+    .prov { margin-top:.5rem; font-size:.75rem; color:var(--muted); }
+    .prov a { color:var(--accent); }
+    table { width:100%; border-collapse:collapse; margin-top:.5rem; font-size:.85rem; }
+    th,td { text-align:left; padding:.25rem .5rem; border-bottom:1px solid #334155; }
+    details { margin-top:.5rem; }
+    summary { cursor:pointer; color:var(--muted); font-size:.8rem; }
+    pre { background:#0b1220; padding:.75rem; border-radius:6px; overflow:auto; font-size:.75rem; max-height:240px; }
+    .err { color:#f87171; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Unfalldaten-API — Demo-Client</h1>
+    <p>
+      Jede Schaltfläche stellt eine Anfrage an die Web-Service-API und zeigt die
+      Antwort samt Herkunft/Lizenz. Vollständige API-Dokumentation:
+      <a href="/docs" target="_blank">/docs (Swagger/OpenAPI)</a>
+    </p>
+  </header>
+  <main id="app"></main>
+
+  <script>
+    // Each example query maps to one API call + an extractor that produces the headline answer.
+    const QUESTIONS = [
+      {
+        title: 'Frühestes Unfalljahr insgesamt',
+        desc: 'GET /regions/00 (Deutschland) → data_coverage.earliest_year',
+        url: '/regions/00',
+        answer: (d) => `Frühestes Jahr: <span class="big">${d.data.data_coverage.earliest_year}</span> (bis ${d.data.data_coverage.latest_year})`,
+      },
+      {
+        title: 'Unfälle mit Personenschaden 2023 in Sachsen',
+        desc: 'GET /accident-statistics?level=state&year=2023 → Sachsen (AGS 14)',
+        url: '/accident-statistics?level=state&year=2023',
+        answer: (d) => { const r = d.data.find(x => x.ags === '14'); return `Sachsen 2023: <span class="big">${r.count.toLocaleString('de-DE')}</span> Unfälle`; },
+      },
+      {
+        title: 'Ab welchem Jahr gibt es Daten für Nordrhein-Westfalen?',
+        desc: 'GET /regions/05 → data_coverage.earliest_year',
+        url: '/regions/05',
+        answer: (d) => `NRW: Daten ab <span class="big">${d.data.data_coverage.earliest_year}</span>`,
+      },
+      {
+        title: 'Ab welchem Jahr gibt es Daten für Mecklenburg-Vorpommern?',
+        desc: 'GET /regions/13 → data_coverage.earliest_year',
+        url: '/regions/13',
+        answer: (d) => `Mecklenburg-Vorpommern: Daten ab <span class="big">${d.data.data_coverage.earliest_year}</span>`,
+      },
+      {
+        title: 'Fußgängerunfälle 2023 in Berlin',
+        desc: 'GET /accident-statistics?level=state&year=2023&participant=foot → Berlin (AGS 11)',
+        url: '/accident-statistics?level=state&year=2023&participant=foot',
+        answer: (d) => { const r = d.data.find(x => x.ags === '11'); return `Berlin 2023 (Fußgängerbeteiligung): <span class="big">${r.count.toLocaleString('de-DE')}</span> Unfälle`; },
+      },
+      {
+        title: 'Unfälle je 100.000 zugelassene PKW (Landkreise 2023, Top 10) — zwei Quellen kombiniert',
+        desc: 'GET /accident-statistics?level=district&year=2023&per=pkw&sort=-rate&limit=10 (Unfallatlas × KBA)',
+        url: '/accident-statistics?level=district&year=2023&per=pkw&sort=-rate&limit=10',
+        answer: (d) => rateTable(d.data, 'PKW'),
+      },
+      {
+        title: 'Unfälle je 100.000 Einwohner (Bundesländer 2023) — zwei Quellen kombiniert',
+        desc: 'GET /accident-statistics?level=state&year=2023&per=population&sort=-rate (Unfallatlas × Gemeindeverzeichnis)',
+        url: '/accident-statistics?level=state&year=2023&per=population&sort=-rate',
+        answer: (d) => rateTable(d.data, 'Einw.'),
+      },
+      {
+        title: 'Gemeinden in Sachsen ohne Unfälle 2023',
+        desc: 'GET /accident-statistics?level=municipality&parent=14&year=2023&maxCount=0',
+        url: '/accident-statistics?level=municipality&parent=14&year=2023&maxCount=0',
+        answer: (d) => {
+          const names = d.data.map(x => x.name).slice(0, 12).join(', ');
+          return `<span class="big">${d.data.length.toLocaleString('de-DE')}</span> Gemeinden in Sachsen ohne erfasste Unfälle 2023.<br><span class="prov">${names}${d.data.length > 12 ? ' …' : ''}</span>`;
+        },
+      },
+      {
+        title: 'Top 5 Landkreise mit Unfällen mit Todesfolge 2024',
+        desc: 'GET /accident-statistics?level=district&year=2024&category=1&sort=-count&limit=5',
+        url: '/accident-statistics?level=district&year=2024&category=1&sort=-count&limit=5',
+        answer: (d) => countTable(d.data),
+      },
+      {
+        title: 'Linked Data — Quellenkatalog als RDF (DCAT + Dublin Core)',
+        desc: 'GET /sources mit Accept: text/turtle → RDF/Turtle (Content Negotiation)',
+        url: '/sources',
+        accept: 'text/turtle',
+        raw: true,
+      },
+    ];
+
+    function rateTable(rows, unit) {
+      const body = rows.map(r => `<tr><td>${r.ags}</td><td>${r.name}</td><td>${r.count.toLocaleString('de-DE')}</td><td>${r.denominator?.toLocaleString('de-DE') ?? '–'}</td><td><b>${r.rate ?? '–'}</b></td></tr>`).join('');
+      return `<table><thead><tr><th>AGS</th><th>Region</th><th>Unfälle</th><th>${unit}</th><th>je 100.000</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+    function countTable(rows) {
+      const body = rows.map(r => `<tr><td>${r.ags}</td><td>${r.name}</td><td><b>${r.count.toLocaleString('de-DE')}</b></td></tr>`).join('');
+      return `<table><thead><tr><th>AGS</th><th>Region</th><th>Unfälle</th></tr></thead><tbody>${body}</tbody></table>`;
+    }
+    function provenance(d) {
+      const sources = d?.meta?.provenance?.sources;
+      if (!sources || !sources.length) return '';
+      const items = sources.map(s => {
+        const lic = s.license_url ? `<a href="${s.license_url}" target="_blank">${s.license}</a>` : (s.license ?? '');
+        const date = s.retrieved_at ? new Date(s.retrieved_at).toLocaleDateString('de-DE') : '–';
+        return `${s.name} — Lizenz: ${lic} — abgerufen: ${date}`;
+      });
+      return `<div class="prov"><b>Herkunft:</b><br>${items.join('<br>')}</div>`;
+    }
+
+    async function run(q, card) {
+      const btn = card.querySelector('button');
+      const out = card.querySelector('.result');
+      btn.disabled = true;
+      out.innerHTML = 'Lädt …';
+      try {
+        const res = await fetch(q.url, q.accept ? { headers: { Accept: q.accept } } : undefined);
+        if (q.raw) {
+          const text = await res.text();
+          if (!res.ok) throw new Error(res.statusText);
+          out.innerHTML = `<div class="answer">RDF/Turtle (${q.accept}):</div><pre>${escapeHtml(text)}</pre>`;
+          return;
+        }
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.message || res.statusText);
+        out.innerHTML =
+          `<div class="answer">${q.answer(d)}</div>` +
+          provenance(d) +
+          `<details><summary>Rohdaten (JSON)</summary><pre>${escapeHtml(JSON.stringify(d, null, 2))}</pre></details>`;
+      } catch (e) {
+        out.innerHTML = `<div class="err">Fehler: ${escapeHtml(String(e.message || e))}</div>`;
+      } finally {
+        btn.disabled = false;
+      }
+    }
+    function escapeHtml(s) { return s.replace(/[&<>]/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;' }[c])); }
+
+    const app = document.getElementById('app');
+    for (const q of QUESTIONS) {
+      const card = document.createElement('section');
+      card.className = 'card';
+      card.innerHTML =
+        `<h2>${q.title}</h2><p class="desc"><code>${q.desc}</code></p>` +
+        `<button>Abfragen</button><div class="result"></div>`;
+      card.querySelector('button').addEventListener('click', () => run(q, card));
+      app.appendChild(card);
+    }
+  </script>
+</body>
+</html>

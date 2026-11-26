@@ -1,0 +1,20 @@
+# Dependencies & build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Logs
+*.log
+
+# Archives
+*.zip
+
+# Unfallatlas raw data (~309 MB) is downloaded by the ETL, not versioned
+data/raw/unfallatlas/*/
+
+# OS cruft
+.DS_Store
+**/.DS_Store
+
+# Local environment / credentials (template: .env.example)
+.env

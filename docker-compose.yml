@@ -1,0 +1,66 @@
+# All credentials/ports come from .env (single source of truth), created once via
+# `cp .env.example .env`. Compose loads .env automatically and aborts with a clear
+# message if it is missing.
+
+# Shared connection environment for the Node containers.
+x-app-env: &app-env
+  DB_HOST: db
+  DB_PORT: 5432
+  DB_NAME: ${DB_NAME}
+  DB_API_USER: ${DB_API_USER}
+  DB_API_PASSWORD: ${DB_API_PASSWORD}
+  DB_OWNER_USER: ${DB_OWNER_USER}
+  DB_OWNER_PASSWORD: ${DB_OWNER_PASSWORD}
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${DB_OWNER_USER:?.env fehlt - bitte 'cp .env.example .env' ausfuehren}
+      POSTGRES_PASSWORD: ${DB_OWNER_PASSWORD:?.env fehlt - bitte 'cp .env.example .env' ausfuehren}
+      POSTGRES_DB: ${DB_NAME:?.env fehlt - bitte 'cp .env.example .env' ausfuehren}
+      # Passed through so the init script can create the API role from the same values.
+      DB_API_USER: ${DB_API_USER}
+      DB_API_PASSWORD: ${DB_API_PASSWORD}
+    # Bound to localhost only: the DB uses throwaway dev credentials and must not
+    # be reachable from the network.
+    ports:
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_OWNER_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      <<: *app-env
+      PORT: 3000
+    ports:
+      - "127.0.0.1:3000:3000"
+    volumes:
+      - ./data:/app/data
+
+  # One-shot ETL runner (does not auto-start). Reproduce the DB with:
+  #   docker compose run --rm etl                                  # full rebuild (+ downloads Unfallatlas)
+  #   docker compose run --rm etl node dist/etl/run.js --update    # incremental
+  etl:
+    build: .
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment: *app-env
+    command: ["node", "dist/etl/run.js"]
+    volumes:
+      - ./data:/app/data
+
+volumes:
+  pgdata:
